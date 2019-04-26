@@ -3,6 +3,8 @@ plugins {
 }
 
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 group 'co.emblock'
 version '1.0-SNAPSHOT'
@@ -19,4 +21,141 @@ dependencies {
     implementation 'com.squareup.okhttp3:logging-interceptor:3.12.1'
     implementation 'org.java-websocket:Java-WebSocket:1.4.0'
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
 }
+
+task sourceJar(type: Jar) {
+    classifier "sources"
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier "javadoc"
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives jar
+    archives sourceJar
+    archives javadocJar
+}
+
+signing {
+    sign configurations.archives
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            customizePom(pom)
+            groupId 'co.emblock'
+            artifactId 'emblock-sdk-java'
+            version '0.9.0'
+
+            from components.java
+
+            // create the sign pom artifact
+            pom.withXml {
+                def pomFile = file("${project.buildDir}/generated-pom.xml")
+                writeTo(pomFile)
+                def pomAscFile = signing.sign(pomFile).signatureFiles[0]
+                artifact(pomAscFile) {
+                    classifier = null
+                    extension = 'pom.asc'
+                }
+            }
+
+            artifact(sourceJar) {
+                classifier = 'sources'
+            }
+            artifact(javadocJar) {
+                classifier = 'javadoc'
+            }
+
+            // create the signed artifacts
+            project.tasks.signArchives.signatureFiles.each {
+                artifact(it) {
+                    def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
+                    if (matcher.find()) {
+                        classifier = matcher.group(1)
+                    } else {
+                        classifier = null
+                    }
+                    extension = 'jar.asc'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            credentials {
+                username sonatypeUsername
+                password sonatypePassword
+            }
+        }
+    }
+}
+
+def customizePom(pom) {
+    pom.withXml {
+        def root = asNode()
+
+        // eliminate test-scoped dependencies (no need in maven central POMs)
+        root.dependencies.removeAll { dep ->
+            dep.scope == "test"
+        }
+
+        // add all items necessary for maven central publication
+        root.children().last() + {
+            resolveStrategy = Closure.DELEGATE_FIRST
+
+            description 'Java SDK for Emblock'
+            name 'Emblock SDK Java'
+            url 'https://github.com/emblock-co/emblock-sdk-java'
+            organization {
+                name 'Emblock'
+                url 'https://emblock.co'
+            }
+            issueManagement {
+                system 'GitHub'
+                url 'https://github.com/emblock-co/emblock-sdk-java/issues'
+            }
+            licenses {
+                license {
+                    name 'Apache License 2.0'
+                    url 'https://github.com/emblock-co/emblock-sdk-java/blob/master/LICENCE'
+                    distribution 'repo'
+                }
+            }
+            scm {
+                url 'https://github.com/emblock-co/emblock-sdk-java'
+                connection 'scm:git:git://github.com/emblock-co/emblock-sdk-java.git'
+                developerConnection 'scm:git:ssh://git@github.com:emblock-co/emblock-sdk-java.git'
+            }
+            developers {
+                developer {
+                    name 'Emblock'
+                }
+            }
+        }
+    }
+}
+
+model {
+    tasks.generatePomFileForMavenJavaPublication {
+        destination = file("$buildDir/generated-pom.xml")
+    }
+    tasks.generatePomFileForMavenJavaPublication {
+        destination = file("$buildDir/generated-pom.xml")
+    }
+    tasks.publishMavenJavaPublicationToMavenLocal {
+        dependsOn project.tasks.signArchives
+    }
+    tasks.publishMavenJavaPublicationToMavenRepository {
+        dependsOn project.tasks.signArchives
+    }
+}
+
+
+
