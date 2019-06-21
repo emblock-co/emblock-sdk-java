@@ -9,7 +9,7 @@ import java.util.Map;
 public interface EmblockApi {
 
     @POST("/projects/{projectId}/calls/current/{function}")
-    Call<List<ConstantResult>> callConstant(
+    Call<List<ParamResult>> callConstant(
             @Path("projectId") String projectId,
             @Path("function") String function,
             @Body Map<String, String> parameters
@@ -30,6 +30,11 @@ public interface EmblockApi {
 
     @GET("/projects/{projectId}/contracts/current")
     Call<ContractResult> getCurrentContract(
+            @Path("projectId") String projectId
+    );
+
+    @GET("/projects/{projectId}/events/current")
+    Call<List<EventResult>> getEvents(
             @Path("projectId") String projectId
     );
 

@@ -1,10 +1,7 @@
 package co.emblock.sdk;
 
 import co.emblock.sdk.api.*;
-import co.emblock.sdk.cb.ConstantCallback;
-import co.emblock.sdk.cb.ContractCallback;
-import co.emblock.sdk.cb.FunctionCallback;
-import co.emblock.sdk.cb.StatusCallback;
+import co.emblock.sdk.cb.*;
 import co.emblock.sdk.ws.EventsWebSocketClient;
 import co.emblock.sdk.ws.EventsWebSocketListener;
 import okhttp3.OkHttpClient;
@@ -12,6 +9,7 @@ import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -66,21 +64,22 @@ public class EmblockClient {
 
     /**
      * Call a constant function of the smart contract or get the value of a state
+     *
      * @param functionName name of the constant function to call
-     * @param parameters function parameters if needed
-     * @param cb callback containing the result
+     * @param parameters   function parameters if needed
+     * @param cb           callback containing the result
      */
     public void callConstant(String functionName, Map<String, String> parameters, final ConstantCallback cb) {
-        Call<List<ConstantResult>> call = emblockApi.callConstant(projectId, functionName, parameters);
-        call.enqueue(new Callback<List<ConstantResult>>() {
+        Call<List<ParamResult>> call = emblockApi.callConstant(projectId, functionName, parameters);
+        call.enqueue(new Callback<List<ParamResult>>() {
             @Override
-            public void onResponse(Call<List<ConstantResult>> call, retrofit2.Response<List<ConstantResult>> response) {
-                List<ConstantResult> body = response.body();
+            public void onResponse(Call<List<ParamResult>> call, retrofit2.Response<List<ParamResult>> response) {
+                List<ParamResult> body = response.body();
                 cb.onResponse(body, null);
             }
 
             @Override
-            public void onFailure(Call<List<ConstantResult>> call, Throwable t) {
+            public void onFailure(Call<List<ParamResult>> call, Throwable t) {
                 cb.onResponse(null, t);
             }
         });
@@ -118,19 +117,22 @@ public class EmblockClient {
 
     /**
      * Get a function status (Successful|Failed) from a callId
+     *
      * @param callId id of a call returned by the 'callFunction'
-     * @param cb callback
+     * @param cb     callback
      */
     public void getFunctionStatus(String callId, final StatusCallback cb) {
         emblockApi
                 .getCallStatus(callId)
                 .enqueue(new Callback<CallResult>() {
-                    @Override public void onResponse(Call<CallResult> call, retrofit2.Response<CallResult> response) {
+                    @Override
+                    public void onResponse(Call<CallResult> call, retrofit2.Response<CallResult> response) {
                         CallResult body = response.body();
                         cb.onResponse("Successful".equals(body.getStatus()), null);
                     }
 
-                    @Override public void onFailure(Call<CallResult> call, Throwable t) {
+                    @Override
+                    public void onFailure(Call<CallResult> call, Throwable t) {
                         cb.onResponse(false, t);
                     }
                 });
@@ -140,13 +142,15 @@ public class EmblockClient {
         emblockApi
                 .getCurrentContract(projectId)
                 .enqueue(new Callback<ContractResult>() {
-                    @Override public void onResponse(Call<ContractResult> call, retrofit2.Response<ContractResult> response) {
+                    @Override
+                    public void onResponse(Call<ContractResult> call, retrofit2.Response<ContractResult> response) {
                         ContractResult body = response.body();
                         String contractId = body.getDetails().getId();
                         cb.onResponse(contractId, null);
                     }
 
-                    @Override public void onFailure(Call<ContractResult> call, Throwable t) {
+                    @Override
+                    public void onFailure(Call<ContractResult> call, Throwable t) {
                         cb.onResponse(null, t);
                     }
                 });
@@ -154,6 +158,7 @@ public class EmblockClient {
 
     /**
      * Listen to events sent by your smart contract.
+     *
      * @param eventsListener a listener
      */
     public void addEventsListener(EventsListener eventsListener) {
@@ -165,11 +170,13 @@ public class EmblockClient {
             } else {
                 URI uri = URI.create(wsUrl);
                 wsClient = new EventsWebSocketClient(uri, contractId, new EventsWebSocketListener() {
-                    @Override public void onEvent(String eventName, List<Param> params) {
+                    @Override
+                    public void onEvent(String eventName, List<Param> params) {
                         eventsListener.onEvent(eventName, params, null);
                     }
 
-                    @Override public void onError(Exception ex) {
+                    @Override
+                    public void onError(Exception ex) {
                         eventsListener.onEvent(null, null, ex);
                     }
                 });
@@ -184,6 +191,23 @@ public class EmblockClient {
             wsClient.close();
             wsClient = null;
         }
+    }
+
+    public void getEvents(EventsCallback cb) {
+        emblockApi
+                .getEvents(projectId)
+                .enqueue(new Callback<List<EventResult>>() {
+                    @Override
+                    public void onResponse(Call<List<EventResult>> call, Response<List<EventResult>> response) {
+                        List<EventResult> events = response.body();
+                        cb.onResponse(events, null);
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<EventResult>> call, Throwable t) {
+                        cb.onResponse(null, t);
+                    }
+                });
     }
 
 }

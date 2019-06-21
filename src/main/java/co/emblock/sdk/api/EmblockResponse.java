@@ -3,12 +3,12 @@ package co.emblock.sdk.api;
 import java.util.List;
 
 public class EmblockResponse {
-    private List<ConstantResult> results;
+    private List<ParamResult> results;
 
-    EmblockResponse(List<ConstantResult> results) {
+    EmblockResponse(List<ParamResult> results) {
         this.results = results;
     }
-    public List<ConstantResult> getResults() {
+    public List<ParamResult> getResults() {
         return results;
     }
 }
