@@ -7,6 +7,10 @@ import co.emblock.sdk.ws.EventsWebSocketListener;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.RawTransaction;
+import org.web3j.crypto.TransactionEncoder;
+import org.web3j.utils.Numeric;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -106,6 +110,64 @@ public class EmblockClient {
                         cb.onResponse(success, null);
                     }
                 });
+            }
+
+            @Override
+            public void onFailure(Call<FunctionResult> call, Throwable t) {
+                cb.onResponse(false, t);
+            }
+        });
+    }
+
+    /**
+     * Call a smart contract function but sign the transaction on client side.
+     * We need the private key for signing but it's not send to the server.
+     *
+     * @param privateKey   privateKey needed for client side signature
+     * @param publicKey    we send it to the server to encode the transaction
+     * @param functionName name of the function to call
+     * @param parameters   parameters passed to the function
+     * @param cb           callback to get the function call response containing a "functionCallId" that you need to use to get the function call status.
+     */
+    public void callFunctionWithClientSideSignature(String privateKey, String publicKey, String functionName, Map<String, String> parameters, final FunctionCallback cb) {
+        Call<FunctionResult> call = emblockApi.callFunction(publicKey, projectId, functionName, parameters);
+        call.enqueue(new Callback<FunctionResult>() {
+            @Override
+            public void onResponse(Call<FunctionResult> call, retrofit2.Response<FunctionResult> response) {
+                FunctionResult body = response.body();
+                RawTransaction rawTx = body.getTxRaw();
+                String callId = body.getCallId();
+
+                if (rawTx != null) {
+                    Credentials credentials = Credentials.create(privateKey);
+                    byte[] signatureData = TransactionEncoder.signMessage(rawTx, credentials);
+                    String hexString = Numeric.toHexString(signatureData);
+
+                    emblockApi.callRaw(callId, new CallRawBody(hexString)).enqueue(new Callback<FunctionResult>() {
+                        @Override
+                        public void onResponse(
+                                Call<FunctionResult> call,
+                                Response<FunctionResult> response
+                        ) {
+                            getFunctionStatus(body.getCallId(), (success, e) -> {
+                                if (e != null) {
+                                    cb.onResponse(false, e);
+                                } else {
+                                    cb.onResponse(success, null);
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onFailure(Call<FunctionResult> call, Throwable t) {
+                            cb.onResponse(false, t);
+                        }
+                    });
+                } else {
+                    //TODO rawTx is null
+                    cb.onResponse(false, new Exception("This should not happened, TxRaw is null. Please send an issue on our github."));
+                }
+
             }
 
             @Override

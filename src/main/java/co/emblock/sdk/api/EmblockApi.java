@@ -23,6 +23,12 @@ public interface EmblockApi {
             @Body Map<String, String> parameters
     );
 
+    @POST("/calls/{callId}/raw")
+    Call<FunctionResult> callRaw(
+            @Path("callId") String callId,
+            @Body CallRawBody body
+    );
+
     @GET("/calls/{callId}/status")
     Call<CallResult> getCallStatus(
             @Path("callId") String callId
@@ -39,3 +45,6 @@ public interface EmblockApi {
     );
 
 }
+
+
+
