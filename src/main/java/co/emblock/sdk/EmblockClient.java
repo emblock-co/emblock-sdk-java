@@ -21,6 +21,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import static co.emblock.sdk.EmblockUtils.checkNotEmptyOrNull;
+
 /**
  * This is a Java SDK to interact with a project/smart contract deployed on the Emblock platform.
  */
@@ -40,10 +42,7 @@ public class EmblockClient {
         checkNotEmptyOrNull(projectId, "projectId cannot be null or empty");
         this.projectId = projectId;
 
-        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         OkHttpClient httpClient = new OkHttpClient.Builder()
-                //.addInterceptor(interceptor)
                 .addInterceptor(chain -> {
                     Request request = chain.request().newBuilder().addHeader("Authorization", "Bearer " + apiToken).build();
                     return chain.proceed(request);
@@ -58,12 +57,6 @@ public class EmblockClient {
                 .build();
 
         emblockApi = retrofit.create(EmblockApi.class);
-    }
-
-    private void checkNotEmptyOrNull(String val, String msg) {
-        if (val == null || val.isEmpty()) {
-            throw new IllegalArgumentException(msg);
-        }
     }
 
     /**

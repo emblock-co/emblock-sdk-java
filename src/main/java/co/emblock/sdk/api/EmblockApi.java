@@ -1,6 +1,7 @@
 package co.emblock.sdk.api;
 
 import retrofit2.Call;
+import retrofit2.Response;
 import retrofit2.http.*;
 
 import java.util.List;
@@ -42,6 +43,12 @@ public interface EmblockApi {
     @GET("/projects/{projectId}/events/current")
     Call<List<EventResult>> getEvents(
             @Path("projectId") String projectId
+    );
+
+    @POST("/wallets/{publicKey}/transfer")
+    Call<Void> transfer(
+            @Path("publicKey") String from,
+            @Body TransferBody body
     );
 
 }

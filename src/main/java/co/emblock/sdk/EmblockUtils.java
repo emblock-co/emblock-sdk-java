@@ -47,4 +47,12 @@ public class EmblockUtils {
         return utf8;
     }
 
+    public static void checkNotEmptyOrNull(String val, String msg) {
+        if (val == null || val.isEmpty()) {
+            throw new IllegalArgumentException(msg);
+        }
+    }
+
 }
+
+
