@@ -4,9 +4,9 @@ import co.emblock.sdk.api.*;
 import co.emblock.sdk.cb.*;
 import co.emblock.sdk.ws.EventsWebSocketClient;
 import co.emblock.sdk.ws.EventsWebSocketListener;
+import com.google.gson.Gson;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.logging.HttpLoggingInterceptor;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.RawTransaction;
 import org.web3j.crypto.TransactionEncoder;
@@ -17,9 +17,11 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static co.emblock.sdk.EmblockUtils.checkNotEmptyOrNull;
 
@@ -71,8 +73,17 @@ public class EmblockClient {
         call.enqueue(new Callback<List<ParamResult>>() {
             @Override
             public void onResponse(Call<List<ParamResult>> call, retrofit2.Response<List<ParamResult>> response) {
-                List<ParamResult> body = response.body();
-                cb.onResponse(body, null);
+                if (response.isSuccessful()) {
+                    List<ParamResult> body = response.body();
+                    cb.onResponse(body, null);
+                } else {
+                    try {
+                        EmblockClientException e = handleResponseError(response);
+                        cb.onResponse(null, e);
+                    } catch (IOException e) {
+                        cb.onResponse(null, e);
+                    }
+                }
             }
 
             @Override
@@ -95,14 +106,23 @@ public class EmblockClient {
         call.enqueue(new Callback<FunctionResult>() {
             @Override
             public void onResponse(Call<FunctionResult> call, retrofit2.Response<FunctionResult> response) {
-                FunctionResult body = response.body();
-                getFunctionStatus(body.getCallId(), (success, e) -> {
-                    if (e != null) {
+                if (response.isSuccessful()) {
+                    FunctionResult body = response.body();
+                    getFunctionStatus(body.getCallId(), (success, e) -> {
+                        if (e != null) {
+                            cb.onResponse(false, e);
+                        } else {
+                            cb.onResponse(success, null);
+                        }
+                    });
+                } else {
+                    try {
+                        EmblockClientException e = handleResponseError(response);
                         cb.onResponse(false, e);
-                    } else {
-                        cb.onResponse(success, null);
+                    } catch (IOException e) {
+                        cb.onResponse(false, e);
                     }
-                });
+                }
             }
 
             @Override
@@ -110,6 +130,14 @@ public class EmblockClient {
                 cb.onResponse(false, t);
             }
         });
+    }
+
+    private <T> EmblockClientException handleResponseError(Response<T> response) throws IOException {
+        String content = response.errorBody().string();
+        ErrorResponse error = new Gson().fromJson(content, ErrorResponse.class);
+        String errorMessage = "Error code " + response.code();
+        if (error != null) errorMessage += ": " + error.getError();
+        return new EmblockClientException(errorMessage);
     }
 
     /**
@@ -127,38 +155,56 @@ public class EmblockClient {
         call.enqueue(new Callback<FunctionResult>() {
             @Override
             public void onResponse(Call<FunctionResult> call, retrofit2.Response<FunctionResult> response) {
-                FunctionResult body = response.body();
-                RawTransaction rawTx = body.getTxRaw();
-                String callId = body.getCallId();
+                if (response.isSuccessful()) {
+                    FunctionResult body = response.body();
+                    RawTransaction rawTx = body.getTxRaw();
+                    String callId = body.getCallId();
 
-                if (rawTx != null) {
-                    Credentials credentials = Credentials.create(privateKey);
-                    byte[] signatureData = TransactionEncoder.signMessage(rawTx, credentials);
-                    String hexString = Numeric.toHexString(signatureData);
+                    if (rawTx != null) {
+                        Credentials credentials = Credentials.create(privateKey);
+                        byte[] signatureData = TransactionEncoder.signMessage(rawTx, credentials);
+                        String hexString = Numeric.toHexString(signatureData);
 
-                    emblockApi.callRaw(callId, new CallRawBody(hexString)).enqueue(new Callback<FunctionResult>() {
-                        @Override
-                        public void onResponse(
-                                Call<FunctionResult> call,
-                                Response<FunctionResult> response
-                        ) {
-                            getFunctionStatus(body.getCallId(), (success, e) -> {
-                                if (e != null) {
-                                    cb.onResponse(false, e);
+                        emblockApi.callRaw(callId, new CallRawBody(hexString)).enqueue(new Callback<FunctionResult>() {
+                            @Override
+                            public void onResponse(
+                                    Call<FunctionResult> call,
+                                    Response<FunctionResult> response
+                            ) {
+                                if (response.isSuccessful()) {
+                                    getFunctionStatus(body.getCallId(), (success, e) -> {
+                                        if (e != null) {
+                                            cb.onResponse(false, e);
+                                        } else {
+                                            cb.onResponse(success, null);
+                                        }
+                                    });
                                 } else {
-                                    cb.onResponse(success, null);
+                                    try {
+                                        EmblockClientException e = handleResponseError(response);
+                                        cb.onResponse(false, e);
+                                    } catch (IOException e) {
+                                        cb.onResponse(false, e);
+                                    }
                                 }
-                            });
-                        }
+                            }
 
-                        @Override
-                        public void onFailure(Call<FunctionResult> call, Throwable t) {
-                            cb.onResponse(false, t);
-                        }
-                    });
+                            @Override
+                            public void onFailure(Call<FunctionResult> call, Throwable t) {
+                                cb.onResponse(false, t);
+                            }
+                        });
+                    } else {
+                        //TODO rawTx is null
+                        cb.onResponse(false, new Exception("This should not happened, TxRaw is null. Please send an issue on our github."));
+                    }
                 } else {
-                    //TODO rawTx is null
-                    cb.onResponse(false, new Exception("This should not happened, TxRaw is null. Please send an issue on our github."));
+                    try {
+                        EmblockClientException e = handleResponseError(response);
+                        cb.onResponse(false, e);
+                    } catch (IOException e) {
+                        cb.onResponse(false, e);
+                    }
                 }
 
             }
