@@ -1,25 +1,16 @@
 package co.emblock.sdk;
 
-import co.emblock.sdk.api.*;
-import co.emblock.sdk.cb.*;
-import co.emblock.sdk.ws.EventsWebSocketClient;
-import co.emblock.sdk.ws.EventsWebSocketListener;
+import co.emblock.sdk.api.EmblockApi;
+import co.emblock.sdk.api.TransferBody;
+import co.emblock.sdk.cb.TransferCallback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.logging.HttpLoggingInterceptor;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.RawTransaction;
-import org.web3j.crypto.TransactionEncoder;
-import org.web3j.utils.Numeric;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static co.emblock.sdk.EmblockUtils.checkNotEmptyOrNull;
