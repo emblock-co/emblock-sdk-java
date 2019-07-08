@@ -1,5 +1,11 @@
 package co.emblock.sdk;
 
+import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 public class EmblockUtils {
@@ -35,16 +41,16 @@ public class EmblockUtils {
     }
 
     public static String bytes32HexToUtf8(String hex) {
-        System.out.println("length=" + hex.length());
         if (!isHexString(hex)) throw new IllegalArgumentException("it's not an hex");
         if (hex.length() > 66) throw new IllegalArgumentException("this is not an bytes 32 hex, must be 66 characters");
-        String utf8 = "";
-        for (int i = 2; i < hex.length(); i += 2) {
-            int code = Integer.parseInt(hex.substring(i, i + 2), 16);
-            if (code == 0) break;
-            utf8 += new String(Character.toChars(code));
+        String hexx = hex.subSequence(2, hex.length()).toString();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        for (int i = 0; i < hexx.length(); i += 2) {
+            String str = hexx.substring(i, i + 2);
+            int byteVal = Integer.parseInt(str, 16);
+            baos.write(byteVal);
         }
-        return utf8;
+        return new String(baos.toByteArray(), Charset.forName("UTF-8"));
     }
 
     public static void checkNotEmptyOrNull(String val, String msg) {
