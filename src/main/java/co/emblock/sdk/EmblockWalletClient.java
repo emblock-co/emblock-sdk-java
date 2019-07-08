@@ -20,6 +20,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static co.emblock.sdk.EmblockUtils.checkNotEmptyOrNull;
 
@@ -45,6 +46,8 @@ public class EmblockWalletClient {
                     Request request = chain.request().newBuilder().addHeader("Authorization", "Bearer " + apiToken).build();
                     return chain.proceed(request);
                 })
+                .readTimeout(2, TimeUnit.MINUTES)
+                .writeTimeout(2, TimeUnit.MINUTES)
                 .build();
 
 
