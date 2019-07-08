@@ -7,7 +7,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 group 'co.emblock'
-version '0.9.2'
+version '0.9.3'
 
 sourceCompatibility = 1.8
 
@@ -51,7 +51,7 @@ publishing {
             customizePom(pom)
             groupId 'co.emblock'
             artifactId 'emblock-sdk-java'
-            version '0.9.2'
+            version '0.9.3'
 
             from components.java
 
