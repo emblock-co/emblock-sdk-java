@@ -35,7 +35,7 @@ public class EmblockClient {
     private EventsListener eventsListener;
     private EventsWebSocketClient wsClient;
 
-    private final String serverUrl = "https://api.emblock.co";
+    public static final String SERVER_URL = "https://api.emblock.co";
     private final String wsUrl = "wss://api.emblock.co/notifs";
 
     public EmblockClient(final String apiToken, final String projectId) {
@@ -52,7 +52,7 @@ public class EmblockClient {
 
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(serverUrl)
+                .baseUrl(SERVER_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .client(httpClient)
                 .build();

@@ -22,10 +22,6 @@ public class EmblockWalletClient {
 
     private final EmblockApi emblockApi;
 
-    //private final String serverUrl = "https://api.emblock.co";
-    private final String serverUrl = "http://localhost:9000";
-    private final String wsUrl = "wss://api.emblock.co/notifs";
-
     public static String ETH_NETWORK_POA_EMBLOCK = "5132";
     public static String ETH_NETWORK_ROPSTEN = "3";
 
@@ -43,7 +39,7 @@ public class EmblockWalletClient {
 
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(serverUrl)
+                .baseUrl(EmblockClient.SERVER_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .client(httpClient)
                 .build();
