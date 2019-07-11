@@ -109,24 +109,25 @@ public class EmblockClient {
                     FunctionResult body = response.body();
                     getFunctionStatus(body.getCallId(), (success, e) -> {
                         if (e != null) {
-                            cb.onResponse(false, e);
+                            cb.onResponse(false,null, e);
                         } else {
-                            cb.onResponse(success, null);
+                            String txHash = response.body().getTxHash();
+                            cb.onResponse(success, txHash, null);
                         }
                     });
                 } else {
                     try {
                         EmblockClientException e = handleResponseError(response);
-                        cb.onResponse(false, e);
+                        cb.onResponse(false, null, e);
                     } catch (IOException e) {
-                        cb.onResponse(false, e);
+                        cb.onResponse(false, null, e);
                     }
                 }
             }
 
             @Override
             public void onFailure(Call<FunctionResult> call, Throwable t) {
-                cb.onResponse(false, t);
+                cb.onResponse(false, null, t);
             }
         });
     }
@@ -171,38 +172,39 @@ public class EmblockClient {
                                     Response<FunctionResult> response
                             ) {
                                 if (response.isSuccessful()) {
+                                    String txHash = response.body().getTxHash();
                                     getFunctionStatus(body.getCallId(), (success, e) -> {
                                         if (e != null) {
-                                            cb.onResponse(false, e);
+                                            cb.onResponse(false, txHash, e);
                                         } else {
-                                            cb.onResponse(success, null);
+                                            cb.onResponse(success, txHash, null);
                                         }
                                     });
                                 } else {
                                     try {
                                         EmblockClientException e = handleResponseError(response);
-                                        cb.onResponse(false, e);
+                                        cb.onResponse(false, null, e);
                                     } catch (IOException e) {
-                                        cb.onResponse(false, e);
+                                        cb.onResponse(false, null, e);
                                     }
                                 }
                             }
 
                             @Override
                             public void onFailure(Call<FunctionResult> call, Throwable t) {
-                                cb.onResponse(false, t);
+                                cb.onResponse(false, null, t);
                             }
                         });
                     } else {
                         //TODO rawTx is null
-                        cb.onResponse(false, new Exception("This should not happened, TxRaw is null. Please send an issue on our github."));
+                        cb.onResponse(false, null, new Exception("This should not happened, TxRaw is null. Please send an issue on our github."));
                     }
                 } else {
                     try {
                         EmblockClientException e = handleResponseError(response);
-                        cb.onResponse(false, e);
+                        cb.onResponse(false, null, e);
                     } catch (IOException e) {
-                        cb.onResponse(false, e);
+                        cb.onResponse(false, null, e);
                     }
                 }
 
@@ -210,7 +212,7 @@ public class EmblockClient {
 
             @Override
             public void onFailure(Call<FunctionResult> call, Throwable t) {
-                cb.onResponse(false, t);
+                cb.onResponse(false, null, t);
             }
         });
     }
