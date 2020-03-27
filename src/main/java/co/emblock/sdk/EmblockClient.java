@@ -2,15 +2,15 @@ package co.emblock.sdk;
 
 import co.emblock.sdk.api.*;
 import co.emblock.sdk.cb.*;
+import co.emblock.sdk.crypto.Credentials;
+import co.emblock.sdk.crypto.Numeric;
+import co.emblock.sdk.crypto.RawTransaction;
+import co.emblock.sdk.crypto.TransactionEncoder;
 import co.emblock.sdk.ws.EventsWebSocketClient;
 import co.emblock.sdk.ws.EventsWebSocketListener;
 import com.google.gson.Gson;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.RawTransaction;
-import org.web3j.crypto.TransactionEncoder;
-import org.web3j.utils.Numeric;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -109,7 +109,7 @@ public class EmblockClient {
                     FunctionResult body = response.body();
                     getFunctionStatus(body.getCallId(), (success, e) -> {
                         if (e != null) {
-                            cb.onResponse(false,null, e);
+                            cb.onResponse(false, null, e);
                         } else {
                             String txHash = response.body().getTxHash();
                             cb.onResponse(success, txHash, null);
@@ -197,6 +197,41 @@ public class EmblockClient {
                         });
                     } else {
                         //TODO rawTx is null
+                        cb.onResponse(false, null, new Exception("This should not happened, TxRaw is null. Please send an issue on our github."));
+                    }
+                } else {
+                    try {
+                        EmblockClientException e = handleResponseError(response);
+                        cb.onResponse(false, null, e);
+                    } catch (IOException e) {
+                        cb.onResponse(false, null, e);
+                    }
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<FunctionResult> call, Throwable t) {
+                cb.onResponse(false, null, t);
+            }
+        });
+    }
+
+    public void getFunctionCallSignature(String privateKey, String publicKey, String functionName, Map<String, String> parameters, final FunctionCallSignatureCallback cb) {
+        Call<FunctionResult> call = emblockApi.callFunction(publicKey, projectId, functionName, parameters);
+        call.enqueue(new Callback<FunctionResult>() {
+            @Override
+            public void onResponse(Call<FunctionResult> call, retrofit2.Response<FunctionResult> response) {
+                if (response.isSuccessful()) {
+                    FunctionResult body = response.body();
+                    RawTransaction rawTx = body.getTxRaw();
+
+                    if (rawTx != null) {
+                        Credentials credentials = Credentials.create(privateKey);
+                        byte[] signatureData = TransactionEncoder.signMessage(rawTx, credentials);
+                        String hexString = Numeric.toHexString(signatureData);
+                        cb.onResponse(true, hexString, null);
+                    } else {
                         cb.onResponse(false, null, new Exception("This should not happened, TxRaw is null. Please send an issue on our github."));
                     }
                 } else {
