@@ -1,6 +1,6 @@
 package co.emblock.sdk.api;
 
-import org.web3j.crypto.RawTransaction;
+import co.emblock.sdk.crypto.RawTransaction;
 
 public class FunctionResult {
     private String callId;
