@@ -1,13 +1,25 @@
 package co.emblock.sdk.api;
 
 public class ErrorResponse {
-    private final String error;
+    private final Integer code;
+    private final String status;
+    private final String message;
 
-    public ErrorResponse(String error) {
-        this.error = error;
+    public ErrorResponse(Integer code, String status, String message) {
+        this.code = code;
+        this.status = status;
+        this.message = message;
     }
 
-    public String getError() {
-        return error;
+    public Integer getCode() {
+        return code;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }
